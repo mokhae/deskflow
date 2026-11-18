@@ -117,6 +117,10 @@ add_library(${target} STATIC
   widgets/SettingsDialogButtonBox.h
 )
 
+if(NOT ENABLE_UPDATE_CHECK)
+  target_compile_definitions(${target} PUBLIC DESKFLOW_DISABLE_UPDATE_CHECK)
+endif()
+
 target_link_libraries(${target}
   PUBLIC
     common
