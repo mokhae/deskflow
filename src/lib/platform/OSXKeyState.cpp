@@ -8,6 +8,7 @@
 #include "platform/OSXKeyState.h"
 #include "arch/Arch.h"
 #include "base/Log.h"
+#include "common/Settings.h"
 #include "platform/OSXKeyLayoutResource.h"
 #include "platform/OSXMediaKeySupport.h"
 
@@ -36,6 +37,10 @@ static const uint32_t s_brightnessUp = 144;
 static const uint32_t s_brightnessDown = 145;
 static const uint32_t s_missionControlVK = 160;
 static const uint32_t s_launchpadVK = 131;
+// Pseudo virtual key used only inside deskflow: a Hangul key received from
+// another computer is mapped here and handled by toggling the macOS input
+// source instead of posting a key event (macOS has no Hangul virtual key).
+static const uint32_t s_hangulToggleVK = 250;
 
 static const uint32_t s_osxNumLock = 1 << 16;
 
@@ -125,6 +130,7 @@ static const KeyEntry s_controlKeys[] = {
     // Eisu (IME deactivate) to Zenkaku (IME activation toggle) on Windows
     // Japanese keyboard (OADG109A)
     {kKeyHenkan, kVK_JIS_Kana},
+    {kKeyHangul, s_hangulToggleVK},
     {kKeyZenkaku, kVK_JIS_Eisu},
 
     {kKeyMissionControl, s_missionControlVK},
@@ -246,6 +252,29 @@ void OSXKeyState::init()
   for (size_t i = 0; i < sizeof(s_controlKeys) / sizeof(s_controlKeys[0]); ++i) {
 
     m_virtualKeyMap[s_controlKeys[i].m_virtualKey] = s_controlKeys[i].m_keyID;
+  }
+
+  m_capsLockTogglesKorean = Settings::value(Settings::Client::CapsLockTogglesKorean).toBool();
+}
+
+void OSXKeyState::fakeKeyDown(KeyID id, KeyModifierMask mask, KeyButton button, const std::string &lang)
+{
+  // Caps Lock from the server switches Korean/English, as Caps Lock does on a
+  // local Mac keyboard. The matching key up is ignored because no key was faked.
+  if (m_capsLockTogglesKorean && id == kKeyCapsLock) {
+    toggleKoreanInputSource();
+    return;
+  }
+  KeyState::fakeKeyDown(id, mask, button, lang);
+}
+
+OSXKeyState::~OSXKeyState()
+{
+  if (m_lastKoreanSourceID) {
+    CFRelease(m_lastKoreanSourceID);
+  }
+  if (m_lastOtherSourceID) {
+    CFRelease(m_lastOtherSourceID);
   }
 }
 
@@ -689,6 +718,13 @@ void OSXKeyState::fakeKey(const Keystroke &keystroke)
         client
     );
 
+    if (virtualKey == s_hangulToggleVK) {
+      if (keyDown) {
+        toggleKoreanInputSource();
+      }
+      break;
+    }
+
     setKeyboardModifiers(virtualKey, keyDown);
     if (postHIDVirtualKey(virtualKey, keyDown) != KERN_SUCCESS) {
       LOG_WARN("fail to post hid event");
@@ -1010,4 +1046,99 @@ KeyButton OSXKeyState::mapVirtualKeyToKeyButton(uint32_t keyCode)
 uint32_t OSXKeyState::mapKeyButtonToVirtualKey(KeyButton keyButton)
 {
   return static_cast<uint32_t>(keyButton - KeyButtonOffset);
+}
+
+namespace {
+
+bool isKoreanInputSource(TISInputSourceRef source)
+{
+  if (!source) {
+    return false;
+  }
+  auto languages = (CFArrayRef)TISGetInputSourceProperty(source, kTISPropertyInputSourceLanguages);
+  if (!languages || CFArrayGetCount(languages) == 0) {
+    return false;
+  }
+  auto primary = (CFStringRef)CFArrayGetValueAtIndex(languages, 0);
+  return primary && CFStringHasPrefix(primary, CFSTR("ko"));
+}
+
+// returns the first select-capable keyboard input source matching wantKorean,
+// preferring the given source id. caller owns the returned reference.
+TISInputSourceRef copyInputSource(bool wantKorean, CFStringRef preferredID)
+{
+  CFStringRef keys[] = {kTISPropertyInputSourceCategory, kTISPropertyInputSourceIsSelectCapable};
+  CFTypeRef values[] = {kTISCategoryKeyboardInputSource, kCFBooleanTrue};
+  AutoCFDictionary filter(
+      CFDictionaryCreate(nullptr, (const void **)keys, (const void **)values, 2, nullptr, nullptr), CFRelease
+  );
+  AutoCFArray sources(TISCreateInputSourceList(filter.get(), false), CFRelease);
+  if (!sources) {
+    return nullptr;
+  }
+
+  TISInputSourceRef found = nullptr;
+  const CFIndex count = CFArrayGetCount(sources.get());
+  for (CFIndex i = 0; i < count; ++i) {
+    auto source = (TISInputSourceRef)CFArrayGetValueAtIndex(sources.get(), i);
+    if (isKoreanInputSource(source) != wantKorean) {
+      continue;
+    }
+    if (!wantKorean) {
+      // skip non-ascii layouts (e.g. other CJK input methods)
+      auto ascii = (CFBooleanRef)TISGetInputSourceProperty(source, kTISPropertyInputSourceIsASCIICapable);
+      if (!ascii || !CFBooleanGetValue(ascii)) {
+        continue;
+      }
+    }
+    auto id = (CFStringRef)TISGetInputSourceProperty(source, kTISPropertyInputSourceID);
+    if (preferredID && id && CFStringCompare(id, preferredID, 0) == kCFCompareEqualTo) {
+      found = source;
+      break;
+    }
+    if (!found) {
+      found = source;
+    }
+  }
+
+  if (found) {
+    CFRetain(found);
+  }
+  return found;
+}
+
+} // namespace
+
+void OSXKeyState::toggleKoreanInputSource()
+{
+  std::lock_guard<std::mutex> lock(g_tisMutex);
+
+  AutoTISInputSourceRef current(TISCopyCurrentKeyboardInputSource(), CFRelease);
+  const bool currentIsKorean = isKoreanInputSource(current.get());
+
+  // remember the last used source of each kind so the toggle returns to it
+  if (current) {
+    auto id = (CFStringRef)TISGetInputSourceProperty(current.get(), kTISPropertyInputSourceID);
+    if (id) {
+      auto &slot = currentIsKorean ? m_lastKoreanSourceID : m_lastOtherSourceID;
+      if (slot) {
+        CFRelease(slot);
+      }
+      slot = (CFStringRef)CFRetain(id);
+    }
+  }
+
+  const bool wantKorean = !currentIsKorean;
+  TISInputSourceRef target = copyInputSource(wantKorean, wantKorean ? m_lastKoreanSourceID : m_lastOtherSourceID);
+  if (!target) {
+    LOG_WARN("hangul toggle: no %s input source is enabled", wantKorean ? "korean" : "non-korean");
+    return;
+  }
+
+  if (TISSelectInputSource(target) != noErr) {
+    LOG_WARN("hangul toggle: failed to select input source");
+  } else {
+    LOG_DEBUG("hangul toggle: switched to %s input", wantKorean ? "korean" : "english");
+  }
+  CFRelease(target);
 }

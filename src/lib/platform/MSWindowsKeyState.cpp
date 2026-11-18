@@ -740,6 +740,12 @@ void MSWindowsKeyState::sendKeyEvent(
 
 void MSWindowsKeyState::fakeKeyDown(KeyID id, KeyModifierMask mask, KeyButton button, const std::string &lang)
 {
+  // A Korean keyboard's Hangul/English key arrives from a macOS server as the
+  // JIS Kana key (Henkan), since macOS reports Korean LANG1 and JIS Kana the same
+  // way. With a Korean layout active, treat it as the Hangul key.
+  if (id == kKeyHenkan && (LOWORD(m_keyLayout) & 0xffffu) == 0x0412u) {
+    id = kKeyHangul;
+  }
   KeyState::fakeKeyDown(id, mask, button, lang);
 }
 

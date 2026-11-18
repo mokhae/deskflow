@@ -42,6 +42,9 @@ public:
     inline static const auto YScrollScale = QStringLiteral("client/yScrollScale");
     inline static const auto XScrollScale = QStringLiteral("client/xScrollScale");
     inline static const auto LanguageSync = QStringLiteral("client/languageSync");
+    // macOS client: a Caps Lock received from the server toggles the Korean/English
+    // input source instead of the caps lock state.
+    inline static const auto CapsLockTogglesKorean = QStringLiteral("client/capsLockTogglesKorean");
     inline static const auto RemoteHost = QStringLiteral("client/remoteHost");
     inline static const auto RecentRemoteHosts = QStringLiteral("client/recentRemoteHosts");
     inline static const auto XdpClipboardRetried = QStringLiteral("client/xdpClipboardRetried");
@@ -275,6 +278,7 @@ private:
 
   inline static const QStringList m_validKeys = {
       Client::DynamicConnectionRetry
+    , Client::CapsLockTogglesKorean
     , Client::InvertYScroll
     , Client::InvertXScroll
     , Client::LanguageSync
@@ -341,6 +345,7 @@ private:
 
   // When checking the default values this list contains the ones that default to false.
   inline static const QStringList m_defaultFalseValues = {
+      Client::CapsLockTogglesKorean,
       Gui::Autohide
     , Gui::AutoStartCore
     , Gui::ShownFirstConnectedMessage
