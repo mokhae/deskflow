@@ -8,7 +8,6 @@
 #include "platform/OSXKeyState.h"
 #include "arch/Arch.h"
 #include "base/Log.h"
-#include "common/Settings.h"
 #include "platform/OSXKeyLayoutResource.h"
 #include "platform/OSXMediaKeySupport.h"
 
@@ -253,19 +252,6 @@ void OSXKeyState::init()
 
     m_virtualKeyMap[s_controlKeys[i].m_virtualKey] = s_controlKeys[i].m_keyID;
   }
-
-  m_capsLockTogglesKorean = Settings::value(Settings::Client::CapsLockTogglesKorean).toBool();
-}
-
-void OSXKeyState::fakeKeyDown(KeyID id, KeyModifierMask mask, KeyButton button, const std::string &lang)
-{
-  // Caps Lock from the server switches Korean/English, as Caps Lock does on a
-  // local Mac keyboard. The matching key up is ignored because no key was faked.
-  if (m_capsLockTogglesKorean && id == kKeyCapsLock) {
-    toggleKoreanInputSource();
-    return;
-  }
-  KeyState::fakeKeyDown(id, mask, button, lang);
 }
 
 OSXKeyState::~OSXKeyState()

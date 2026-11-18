@@ -42,9 +42,6 @@ public:
     inline static const auto YScrollScale = QStringLiteral("client/yScrollScale");
     inline static const auto XScrollScale = QStringLiteral("client/xScrollScale");
     inline static const auto LanguageSync = QStringLiteral("client/languageSync");
-    // macOS client: a Caps Lock received from the server toggles the Korean/English
-    // input source instead of the caps lock state.
-    inline static const auto CapsLockTogglesKorean = QStringLiteral("client/capsLockTogglesKorean");
     inline static const auto RemoteHost = QStringLiteral("client/remoteHost");
     inline static const auto RecentRemoteHosts = QStringLiteral("client/recentRemoteHosts");
     inline static const auto XdpClipboardRetried = QStringLiteral("client/xdpClipboardRetried");
@@ -106,6 +103,9 @@ public:
   };
   struct Server
   {
+    // Windows server: while the cursor is on a client, a short Caps Lock press sends the
+    // Korean Hangul key and a long press toggles caps lock (like macOS input switching).
+    inline static const auto CapsLockKoreanOnClient = QStringLiteral("server/capsLockKoreanOnClient");
     inline static const auto ClipboardSize = QStringLiteral("server/clipboardSize");
     inline static const auto DefaultLockToComputerState = QStringLiteral("server/defaultLockToComputerState");
     inline static const auto DisableLockToComputer = QStringLiteral("server/disableLockToComputer");
@@ -278,7 +278,6 @@ private:
 
   inline static const QStringList m_validKeys = {
       Client::DynamicConnectionRetry
-    , Client::CapsLockTogglesKorean
     , Client::InvertYScroll
     , Client::InvertXScroll
     , Client::LanguageSync
@@ -325,6 +324,7 @@ private:
     , Security::KeySize
     , Security::TlsEnabled
     , Server::ClipboardSize
+    , Server::CapsLockKoreanOnClient
     , Server::DefaultLockToComputerState
     , Server::DisableLockToComputer
     , Server::EnableClipboard
@@ -345,7 +345,7 @@ private:
 
   // When checking the default values this list contains the ones that default to false.
   inline static const QStringList m_defaultFalseValues = {
-      Client::CapsLockTogglesKorean,
+      Server::CapsLockKoreanOnClient,
       Gui::Autohide
     , Gui::AutoStartCore
     , Gui::ShownFirstConnectedMessage

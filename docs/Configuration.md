@@ -51,7 +51,6 @@ It will begin with `[client]`
 
 | Option                    |    Valid Values    | Description |
 |:--------------------------|:------------------:|:-----------|
-| capsLockTogglesKorean     | `true` or `false`  | macOS only. A Caps Lock received from the server switches between a Korean and a non-Korean input source instead of toggling caps lock [default: false] |
 | dynamicConnectionInterval | `true` or `false`  | Use dynamic connection retry times based on number of previously failed attempts [default: false] |
 | languageSync              | `true` or `false`  | Sync to server language [default: true] |
 | remoteHost                | `IP` or `hostname` | The remote host(s) to connect to. Use a comma separated list when you want to try several hosts |
@@ -138,6 +137,7 @@ This section contains options used when in server mode it will begin with `[serv
 
 |Option              |    Valid Values   |Description|
 |:-------------------|:-----------------:|:-----------|
+| capsLockKoreanOnClient | `true` or `false` | Windows server only. While the cursor is on a client, a short Caps Lock press sends the Hangul key (Korean/English toggle) and a press held for 0.5 s or longer toggles caps lock, like macOS input source switching [default: false] |
 | clipboardSize      | int > 0           | Deskflow will send a maximum of `N` megabytes of clipboard data to another computer when the mouse transitions to that computer. Clients use the server's value for both sending and receiving.|
 | defaultLockToComputerState| `true` or `false` | When this is true the cursor is locked to the new computer when switching (default: false)|
 | disableLockToComputer| `true` or `false` | If false pressing scroll lock will toggle your cursor to be locked to current computer. (default: false) |

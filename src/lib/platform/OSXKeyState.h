@@ -86,9 +86,6 @@ public:
 
   CGEventFlags getModifierStateAsOSXFlags() const;
 
-  // IKeyState overrides
-  void fakeKeyDown(KeyID id, KeyModifierMask mask, KeyButton button, const std::string &lang) override;
-
 protected:
   // KeyState overrides
   void getKeyMap(deskflow::KeyMap &keyMap) override;
@@ -147,7 +144,6 @@ private:
   // Used when a Hangul key is received from another computer.
   void toggleKoreanInputSource();
 
-  bool m_capsLockTogglesKorean = false;
   CFStringRef m_lastKoreanSourceID = nullptr;
   CFStringRef m_lastOtherSourceID = nullptr;
 

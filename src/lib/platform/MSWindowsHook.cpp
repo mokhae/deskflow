@@ -44,6 +44,11 @@ static std::mutex g_keyStateMutex;
 static DWORD g_hookThread = 0;
 static bool g_fakeServerInput = false;
 static BOOL g_isPrimary = TRUE;
+static bool g_capsLockKoreanOnClient = false;
+static bool g_capsLockHeld = false;
+static DWORD g_capsLockDownTime = 0;
+// a Caps Lock press held at least this long toggles caps lock instead of Hangul
+static const DWORD kCapsLockHoldMs = 500;
 
 MSWindowsHook::~MSWindowsHook()
 {
@@ -138,6 +143,11 @@ void MSWindowsHook::setZone(int32_t x, int32_t y, int32_t w, int32_t h, int32_t 
   g_yComputer = y;
   g_wComputer = w;
   g_hComputer = h;
+}
+
+void MSWindowsHook::setCapsLockKoreanOnClient(bool enabled)
+{
+  g_capsLockKoreanOnClient = enabled;
 }
 
 void MSWindowsHook::setMode(EHookMode mode)
@@ -502,6 +512,37 @@ static LRESULT CALLBACK keyboardLLHook(int code, WPARAM wParam, LPARAM lParam)
     // FIXME -- bit 30 should be set if key was already down but
     // we don't know that info.  as a result we'll never generate
     // key repeat events.
+
+    // Caps Lock while the cursor is on a client: a short press is sent as the
+    // Hangul key, and a long press toggles caps lock here (so the server keeps
+    // producing upper case characters) and on the client.
+    if (g_capsLockKoreanOnClient && !injected && info->vkCode == VK_CAPITAL &&
+        (g_mode == kHOOK_RELAY_EVENTS || g_capsLockHeld)) {
+      if ((info->flags & LLKHF_UP) == 0) {
+        if (!g_capsLockHeld) {
+          g_capsLockHeld = true;
+          g_capsLockDownTime = info->time;
+        }
+      } else if (g_capsLockHeld) {
+        g_capsLockHeld = false;
+        if (info->time - g_capsLockDownTime < kCapsLockHoldMs) {
+          // scan code 0x72 with the extended bit is the Hangul key
+          const LPARAM hangul = 1 | (0x72lu << 16) | (1lu << 24);
+          keyboardHookHandler(VK_HANGUL, hangul);
+          keyboardHookHandler(VK_HANGUL, hangul | (1lu << 30) | (1lu << 31));
+        } else {
+          // injected input passes through this hook normally
+          INPUT inputs[2] = {};
+          inputs[0].type = INPUT_KEYBOARD;
+          inputs[0].ki.wVk = VK_CAPITAL;
+          inputs[0].ki.wScan = static_cast<WORD>(info->scanCode);
+          inputs[1] = inputs[0];
+          inputs[1].ki.dwFlags = KEYEVENTF_KEYUP;
+          SendInput(2, inputs, sizeof(INPUT));
+        }
+      }
+      return 1;
+    }
 
     // handle the message
     if (keyboardHookHandler(wParam, lParam)) {

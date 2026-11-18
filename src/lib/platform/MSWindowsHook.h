@@ -64,6 +64,9 @@ public:
 
   void setMode(EHookMode mode);
 
+  //! While relaying, treat a short Caps Lock press as the Hangul key and a long one as Caps Lock.
+  static void setCapsLockKoreanOnClient(bool enabled);
+
   //! Copy the hook's physical key state; false until it has observed an event.
   static bool getPhysicalKeyState(BYTE keys[kVirtualKeyCount]);
 

@@ -96,6 +96,7 @@ MSWindowsComputer::MSWindowsComputer(bool isPrimary, bool useHooks, IEventQueue 
   try {
     if (m_isPrimary && m_useHooks) {
       m_hook.loadLibrary();
+      MSWindowsHook::setCapsLockKoreanOnClient(Settings::value(Settings::Server::CapsLockKoreanOnClient).toBool());
     }
 
     m_screensaver = new MSWindowsScreenSaver();
