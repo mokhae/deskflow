@@ -807,8 +807,13 @@ KeyModifierMask MSWindowsKeyState::pollActiveModifiers() const
     }
   }
 
-  // we can get toggle modifiers from the system
-  if ((GetKeyState(VK_CAPITAL) & 0x01) != 0) {
+  // we can get toggle modifiers from the system. while the cursor is on a
+  // client with a separate caps lock, report the client's caps lock instead.
+  if (bool clientCapsLock = false; MSWindowsHook::getClientCapsLock(clientCapsLock)) {
+    if (clientCapsLock) {
+      state |= KeyModifierCapsLock;
+    }
+  } else if ((GetKeyState(VK_CAPITAL) & 0x01) != 0) {
     state |= KeyModifierCapsLock;
   }
   if ((GetKeyState(VK_NUMLOCK) & 0x01) != 0) {
