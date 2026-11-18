@@ -264,6 +264,9 @@ void SettingsDialog::loadFromConfig()
   ui->cbPreventSleep->setChecked(Settings::value(Settings::Core::PreventSleep).toBool());
   ui->cbElevateDaemon->setChecked(Settings::value(Settings::Daemon::Elevate).toBool());
   ui->cbAutoUpdate->setChecked(Settings::value(Settings::Gui::AutoUpdateCheck).toBool());
+#ifdef DESKFLOW_DISABLE_UPDATE_CHECK
+  ui->cbAutoUpdate->setVisible(false);
+#endif
   ui->cbGuiDebug->setChecked(Settings::value(Settings::Log::GuiDebug).toBool());
   ui->cbShowVersion->setChecked(Settings::value(Settings::Gui::ShowVersionInTitle).toBool());
   ui->cbRunEnterCommand->setChecked(Settings::value(Settings::Core::EnableEnterCommand).toBool());

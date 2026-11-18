@@ -28,7 +28,7 @@ public:
 
   OSXKeyState(IEventQueue *events, std::vector<std::string> layouts, bool isLangSyncEnabled);
   OSXKeyState(IEventQueue *events, deskflow::KeyMap &keyMap, std::vector<std::string> layouts, bool isLangSyncEnabled);
-  ~OSXKeyState() override = default;
+  ~OSXKeyState() override;
 
   //! @name modifiers
   //@{
@@ -139,6 +139,13 @@ private:
   void setKeyboardModifiers(CGKeyCode virtualKey, bool keyDown);
 
   void postKeyboardKey(CGKeyCode virtualKey, bool keyDown);
+
+  // Toggle between a Korean and a non-Korean (e.g. ABC) input source.
+  // Used when a Hangul key is received from another computer.
+  void toggleKoreanInputSource();
+
+  CFStringRef m_lastKoreanSourceID = nullptr;
+  CFStringRef m_lastOtherSourceID = nullptr;
 
 private:
   // OS X uses a physical key if 0 for the 'A' key.  deskflow reserves

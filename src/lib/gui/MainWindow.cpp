@@ -650,6 +650,9 @@ void MainWindow::open()
   const auto kCriticalDialogDelay = 100;
   QTimer::singleShot(kCriticalDialogDelay, this, &messages::raiseCriticalDialog);
 
+#ifdef DESKFLOW_DISABLE_UPDATE_CHECK
+  qDebug() << "skipping check for new version, disabled at build time";
+#else
   if (!Settings::value(Settings::Gui::AutoUpdateCheck).isValid()) {
     Settings::setValue(Settings::Gui::AutoUpdateCheck, messages::showUpdateCheckOption(this));
   }
@@ -659,6 +662,7 @@ void MainWindow::open()
   } else {
     qDebug() << "skipping check for new version, disabled";
   }
+#endif
 
   if (Settings::value(Settings::Gui::AutoStartCore).toBool()) {
     startCore();

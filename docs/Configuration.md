@@ -137,6 +137,7 @@ This section contains options used when in server mode it will begin with `[serv
 
 |Option              |    Valid Values   |Description|
 |:-------------------|:-----------------:|:-----------|
+| separateCapsLock   | `true` or `false` | Windows server only. Caps Lock pressed while the cursor is on a client changes only the client's caps lock and not the server's [default: true] |
 | clipboardSize      | int > 0           | Deskflow will send a maximum of `N` megabytes of clipboard data to another computer when the mouse transitions to that computer. Clients use the server's value for both sending and receiving.|
 | defaultLockToComputerState| `true` or `false` | When this is true the cursor is locked to the new computer when switching (default: false)|
 | disableLockToComputer| `true` or `false` | If false pressing scroll lock will toggle your cursor to be locked to current computer. (default: false) |
@@ -384,6 +385,8 @@ Valid key names are:
 * F34
 * F35
 * Find
+* Hangul
+* Hanja
 * Help
 * Home
 * Insert

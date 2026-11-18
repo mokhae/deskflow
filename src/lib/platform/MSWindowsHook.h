@@ -64,6 +64,12 @@ public:
 
   void setMode(EHookMode mode);
 
+  //! Keep caps lock pressed while the cursor is on a client off the server.
+  static void setSeparateCapsLock(bool enabled);
+
+  //! Client caps lock state; false when not relaying or the option is off.
+  static bool getClientCapsLock(bool &capsLock);
+
   //! Copy the hook's physical key state; false until it has observed an event.
   static bool getPhysicalKeyState(BYTE keys[kVirtualKeyCount]);
 

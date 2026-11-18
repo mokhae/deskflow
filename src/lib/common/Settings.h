@@ -103,6 +103,9 @@ public:
   };
   struct Server
   {
+    // Windows server: Caps Lock pressed while the cursor is on a client changes only the
+    // client's caps lock, not the server's.
+    inline static const auto SeparateCapsLock = QStringLiteral("server/separateCapsLock");
     inline static const auto ClipboardSize = QStringLiteral("server/clipboardSize");
     inline static const auto DefaultLockToComputerState = QStringLiteral("server/defaultLockToComputerState");
     inline static const auto DisableLockToComputer = QStringLiteral("server/disableLockToComputer");
@@ -321,6 +324,7 @@ private:
     , Security::KeySize
     , Security::TlsEnabled
     , Server::ClipboardSize
+    , Server::SeparateCapsLock
     , Server::DefaultLockToComputerState
     , Server::DisableLockToComputer
     , Server::EnableClipboard
@@ -369,7 +373,8 @@ private:
 
   // When checking the default values this list contains the ones that default to true.
   inline static const QStringList m_defaultTrueValues = {
-      Core::UseHooks
+      Server::SeparateCapsLock
+    , Core::UseHooks
     , Gui::CloseToTray
     , Gui::CloseReminder
     , Gui::LogExpanded

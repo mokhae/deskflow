@@ -44,6 +44,11 @@ static std::mutex g_keyStateMutex;
 static DWORD g_hookThread = 0;
 static bool g_fakeServerInput = false;
 static BOOL g_isPrimary = TRUE;
+// when true, caps lock pressed while relaying only affects the client
+static bool g_separateCapsLock = false;
+// caps lock state of the client(s), used while relaying
+static bool g_clientCapsLock = false;
+static bool g_clientCapsLockDown = false;
 
 MSWindowsHook::~MSWindowsHook()
 {
@@ -140,6 +145,20 @@ void MSWindowsHook::setZone(int32_t x, int32_t y, int32_t w, int32_t h, int32_t 
   g_hComputer = h;
 }
 
+void MSWindowsHook::setSeparateCapsLock(bool enabled)
+{
+  g_separateCapsLock = enabled;
+}
+
+bool MSWindowsHook::getClientCapsLock(bool &capsLock)
+{
+  if (!g_separateCapsLock || g_mode != kHOOK_RELAY_EVENTS) {
+    return false;
+  }
+  capsLock = g_clientCapsLock;
+  return true;
+}
+
 void MSWindowsHook::setMode(EHookMode mode)
 {
   if (mode == g_mode) {
@@ -195,8 +214,13 @@ static void keyboardGetState(BYTE keys[MSWindowsHook::kVirtualKeyCount], DWORD v
     keys[i] = g_keyState[i];
   }
 
-  key = GetKeyState(VK_CAPITAL);
-  keys[VK_CAPITAL] = (BYTE)(((key < 0) ? 0x80 : 0) | (key & 1));
+  if (g_separateCapsLock && g_mode == kHOOK_RELAY_EVENTS) {
+    // characters for the client follow the client's caps lock, not the server's
+    keys[VK_CAPITAL] = (BYTE)((g_clientCapsLockDown ? 0x80 : 0) | (g_clientCapsLock ? 1 : 0));
+  } else {
+    key = GetKeyState(VK_CAPITAL);
+    keys[VK_CAPITAL] = (BYTE)(((key < 0) ? 0x80 : 0) | (key & 1));
+  }
   g_keyStateValid = true;
 }
 
@@ -363,6 +387,14 @@ static bool keyboardHookHandler(WPARAM wParam, LPARAM lParam)
     lParam &= ~0x01000000u;
   }
 
+  // track the client's caps lock separately from the server's
+  if (g_separateCapsLock && g_mode == kHOOK_RELAY_EVENTS && vkCode == VK_CAPITAL) {
+    if (!kf_up && !g_clientCapsLockDown) {
+      g_clientCapsLock = !g_clientCapsLock;
+    }
+    g_clientCapsLockDown = !kf_up;
+  }
+
   // tell server about event
   PostThreadMessage(g_threadID, DESKFLOW_MSG_DEBUG, wParam, lParam);
 
@@ -451,6 +483,12 @@ static bool keyboardHookHandler(WPARAM wParam, LPARAM lParam)
     // let certain keys pass through
     switch (wParam) {
     case VK_CAPITAL:
+      if (g_separateCapsLock) {
+        // the key was relayed to the client above; keep it off the server
+        return true;
+      }
+      break;
+
     case VK_NUMLOCK:
     case VK_SCROLL:
       // pass event on.  we want to let these through to

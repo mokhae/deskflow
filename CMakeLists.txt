@@ -24,6 +24,7 @@ endif()
 #Project level options
 option(BUILD_INSTALLER "Build installer" ON)
 option(ENABLE_COVERAGE "Enable test coverage" OFF)
+option(ENABLE_UPDATE_CHECK "Ask about and check for new versions on start" OFF)
 if(UNIX)
   if(APPLE)
     option(BUILD_OSX_BUNDLE "Build mac os bundle" ON)
