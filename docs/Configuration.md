@@ -51,6 +51,7 @@ It will begin with `[client]`
 
 | Option                    |    Valid Values    | Description |
 |:--------------------------|:------------------:|:-----------|
+| capsLockTogglesKorean     | `true` or `false`  | macOS only. A Caps Lock received from the server switches between a Korean and a non-Korean input source instead of toggling caps lock [default: false] |
 | dynamicConnectionInterval | `true` or `false`  | Use dynamic connection retry times based on number of previously failed attempts [default: false] |
 | languageSync              | `true` or `false`  | Sync to server language [default: true] |
 | remoteHost                | `IP` or `hostname` | The remote host(s) to connect to. Use a comma separated list when you want to try several hosts |
@@ -384,6 +385,8 @@ Valid key names are:
 * F34
 * F35
 * Find
+* Hangul
+* Hanja
 * Help
 * Home
 * Insert
